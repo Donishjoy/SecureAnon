@@ -160,7 +160,9 @@ export default function FileUpload() {
                 </div>
             </div>
             <br />
-<button type="button" className="bg-success hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" onClick={handleprocess} style={{marginLeft:"80%"}}>Process Video</button>
+
+            {selectedFile && selectedImage && (<button type="button" className="bg-success hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" onClick={handleprocess} style={{marginLeft:"80%"}}>Process Video</button>)}
+
             {VideoUrl && (
                 <div>
                     <video src="https://www.youtube.com/watch?v=GXcy7Di1oys&list=PLUE9cBml08yi4OVpg4tR7yGBGgJjyfi3y"  style={{ marginTop: '10px', width: '50%', height: '30%' }} />

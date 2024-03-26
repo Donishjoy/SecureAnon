@@ -1,7 +1,11 @@
-import pymongo
+import bcrypt
+def register(passw):
+    pa=passw.encode('utf-8')
+    salt=bcrypt.gensalt(rounds=15)
+    hash=bcrypt.hashpw(pa,salt)
+    return hash
 
-# Connect to MongoDB (replace with your connection details)
-client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
-db = client["face"]  # Replace with your database name
-frames_collection = db["frames"]  # Replace with your collection nameex
 
+if __name__ == "__main__":
+    passw=""
+    register(passw)

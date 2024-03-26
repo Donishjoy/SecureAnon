@@ -1,7 +1,7 @@
 import cv2
 import os
 import pymongo
-
+import datetime
 # Connect to MongoDB (replace with your connection details)
 client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
 db = client["face"]  # Replace with your database name
@@ -11,7 +11,7 @@ output_folder = "comparison"
 video_id = "03"  # Set the video ID here
 destination="output"
 # Function to combine frames based on start time and end time from MongoDB
-def combine_frames_from_db():
+def combine_frames_from_db(currentuser,video_id):
     frames = []
     start_times = []
     end_times = []
@@ -29,7 +29,9 @@ def combine_frames_from_db():
     if frames:
         height, width, _ = frames[0].shape
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        video_filename = os.path.join(destination, f"video_{video_id}.mp4")  # Construct video filename
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        video_filename = os.path.join(destination, f"video_{currentuser+timestamp}.mp4")  # Construct video filename
         video_writer = cv2.VideoWriter(video_filename, fourcc, 30.0, (width, height))
 
         for frame, start_time, end_time in zip(frames, start_times, end_times):

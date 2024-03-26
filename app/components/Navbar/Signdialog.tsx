@@ -2,13 +2,39 @@
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 import { LockClosedIcon } from '@heroicons/react/20/solid'
+import bcrypt from 'bcrypt'
+import exp from 'constants'
 
-
-const Signin = () => {
+export default function Signin() {
     let [isOpen, setIsOpen] = useState(false)
-
+    const [username, setusername] = useState<string>('');
+    const [pass, setPassword] = useState<string>('');
     const closeModal = () => {
         setIsOpen(false)
+    }
+
+    const handleEmail = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        setusername(event.target.value);
+    }
+    const handlePassword = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        setPassword(event.target.value);
+    }
+
+    const handleSubmit = async () => {
+        console.log(username, pass);
+        const formdata = new FormData();
+        formdata.append('email', username);
+        formdata.append('passw', pass);
+
+        const response = await fetch('http://127.0.0.1:5000/api/login', {
+            method: 'POST',
+            body: formdata
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log(data.msg, data.token);
+        }
+
     }
 
     const openModal = () => {
@@ -63,7 +89,7 @@ const Signin = () => {
                                                     Sign in to your account
                                                 </h2>
                                             </div>
-                                            <form className="mt-8 space-y-6" action="#" method="POST">
+                                            <form className="mt-8 space-y-6" method="POST">
                                                 <input type="hidden" name="remember" defaultValue="true" />
                                                 <div className="-space-y-px rounded-md shadow-sm">
                                                     <div>
@@ -78,6 +104,7 @@ const Signin = () => {
                                                             required
                                                             className="relative block w-full appearance-none rounded-none rounded-t-md border border-grey500 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                                                             placeholder="Email address"
+                                                            onChange={handleEmail}
                                                         />
                                                     </div>
                                                     <br></br>
@@ -93,26 +120,17 @@ const Signin = () => {
                                                             required
                                                             className="relative block w-full appearance-none rounded-none rounded-b-md border border-grey500 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                                                             placeholder="Password"
+                                                            onChange={handlePassword}
                                                         />
                                                     </div>
                                                 </div>
 
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center">
-                                                        <input
-                                                            id="remember-me"
-                                                            name="remember-me"
-                                                            type="checkbox"
-                                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                        />
-                                                        <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                                                            Remember me
-                                                        </label>
-                                                    </div>
+
 
                                                     <div className="text-sm">
                                                         <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                                                            Forgot your password?
+                                                           Not Registered
                                                         </a>
                                                     </div>
                                                 </div>
@@ -121,7 +139,7 @@ const Signin = () => {
                                                     <button
                                                         type="submit"
                                                         className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                                    >
+                                                        onClick={handleSubmit} >
                                                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                                                             <LockClosedIcon className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" aria-hidden="true" />
                                                         </span>
@@ -152,4 +170,3 @@ const Signin = () => {
     )
 }
 
-export default Signin;

@@ -1,8 +1,6 @@
 import './globals.css';
 import Navbar from './components/Navbar/index';
 
-
-
 export const metadata = {
   title: 'SecureAnon',
   description: '',

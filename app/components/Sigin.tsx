@@ -4,37 +4,40 @@ import { Fragment, useState } from 'react'
 import { LockClosedIcon } from '@heroicons/react/20/solid'
 
 
-export default function Register(){
+export default function Signin() {
     let [isOpen, setIsOpen] = useState(false)
-    const [email, setEmail] = useState<string>('');
-    const [password,setPassword]=useState<string>('');
-
-const handleEmail=async(event:React.ChangeEvent<HTMLInputElement>)=>{
-setEmail(event.target.value);
-}
-
-const handlePassword=async(event:React.ChangeEvent<HTMLInputElement>)=>{
-    setPassword(event.target.value);
-}
-
-const handleSubmit=async()=>{
-    console.log(email,password);
-    const formdata=new FormData();
-    formdata.append('email',email);
-    formdata.append('password',password);
-
-    const response=await fetch('http://127.0.0.1:5000/api/register',{
-        method:'POST',
-        body:formdata,
-    });
-
-    if(response.ok){
-        const data=await response.json();
-        console.log(data.msg);
-    }
-}
+    const [username, setusername] = useState<string>('');
+    const [pass, setPassword] = useState<string>('');
     const closeModal = () => {
         setIsOpen(false)
+    }
+
+
+    const handleEmail = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        setusername(event.target.value);
+    }
+    const handlePassword = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        setPassword(event.target.value);
+    }
+
+    const handleSubmit = async () => {
+        console.log(username, pass);
+        const formdata = new FormData();
+        formdata.append('email', username);
+        formdata.append('passw', pass);
+
+        const response = await fetch('http://127.0.0.1:5000/api/login', {
+            method: 'POST',
+            body: formdata
+        });
+        if (response.ok) {
+            const data = await response.json();
+            console.log(data.msg, data.token);
+            if (data.token){
+  
+            }
+        }
+
     }
 
     const openModal = () => {
@@ -43,10 +46,10 @@ const handleSubmit=async()=>{
 
     return (
         <>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto  sm:pr-0">
+            <div className="absolute inset-y-0 right-0 flex items-center sm:static sm:inset-auto sm:pr-0">
                 <div className='hidden lg:block'>
-                    <button className="text-blue text-lg font-medium ml-9 py-5 px-16 transition duration-150 ease-in-out leafbutton bg-lightblue hover:text-white hover:bg-blue" onClick={openModal}>
-                        Sign up
+                    <button type="button" className='text-lg text-blue font-medium' onClick={openModal}>
+                        Sign In
                     </button>
                 </div>
             </div>
@@ -64,7 +67,6 @@ const handleSubmit=async()=>{
                     >
                         <div className="fixed inset-0 bg-black bg-opacity-25" />
                     </Transition.Child>
-
                     <div className="fixed inset-0 overflow-y-auto">
                         <div className="flex min-h-full items-center justify-center p-4 text-center">
                             <Transition.Child
@@ -84,13 +86,13 @@ const handleSubmit=async()=>{
                                                 <img
                                                     className="mx-auto h-12 w-auto"
                                                     src="/assets/logo/l1.svg"
-                                                    alt="Your Company"
+                                                    alt="Company"
                                                 />
                                                 <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-                                                    Register your account
+                                                    Sign in to your account
                                                 </h2>
                                             </div>
-                                            <form className="mt-8 space-y-6" action="#" method="POST">
+                                            <form className="mt-8 space-y-6" method="POST">
                                                 <input type="hidden" name="remember" defaultValue="true" />
                                                 <div className="-space-y-px rounded-md shadow-sm">
                                                     <div>
@@ -108,9 +110,7 @@ const handleSubmit=async()=>{
                                                             onChange={handleEmail}
                                                         />
                                                     </div>
-                                                    <br>
-                                                    </br>
-
+                                                    <br></br>
                                                     <div>
                                                         <label htmlFor="password" className="sr-only">
                                                             Password
@@ -129,30 +129,24 @@ const handleSubmit=async()=>{
                                                 </div>
 
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center">
-                                                        <input
-                                                            id="remember-me"
-                                                            name="remember-me"
-                                                            type="checkbox"
-                                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                        />
-                                                        <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                                                            Remember me
-                                                        </label>
-                                                    </div>
 
+
+                                                    <div className="text-sm">
+                                                        <a href='/Signup' className="font-medium text-indigo-600 hover:text-indigo-500">
+                                                           Not Registered
+                                                        </a>
+                                                    </div>
                                                 </div>
 
                                                 <div>
                                                     <button
                                                         type="submit"
-                                                        className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue py-2 px-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                                    onClick={handleSubmit}
-                                                    >
+                                                        className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                        onClick={handleSubmit} >
                                                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                                                             <LockClosedIcon className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" aria-hidden="true" />
                                                         </span>
-                                                        Register Now
+                                                        Sign in
                                                     </button>
                                                 </div>
                                             </form>
@@ -163,7 +157,7 @@ const handleSubmit=async()=>{
                                     <div className="mt-4 flex justify-end">
                                         <button
                                             type="button"
-                                            className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 "
+                                            className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                                             onClick={closeModal}
                                         >
                                             Got it, thanks!

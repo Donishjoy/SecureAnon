@@ -1,8 +1,9 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-
+import { Select, SelectItem } from '@nextui-org/react';
 // Define your component
 export default function FileUpload() {
+
     // State variables to store the detected face indices, image path, selected faces, and error message
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [detectedFaces, setDetectedFaces] = useState<number[]>([]);
@@ -19,6 +20,7 @@ export default function FileUpload() {
             setSelectedFile(event.target.files[0]);
         }
     };
+
     const handleBlurFactorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setBlurFactor(parseInt(event.target.value));
     };
@@ -42,7 +44,7 @@ export default function FileUpload() {
             if (response.ok) {
                 const data = await response.json();
                 setDetectedFaces(data.detected_faces);
-                console.log("detected faces",data.detected_faces)
+                console.log("detected faces", data.detected_faces)
                 setFaces(data.detected_faces);
                 setImagePath(data.image_path);
                 setErrorMessage('');
@@ -54,52 +56,52 @@ export default function FileUpload() {
         }
     };
 
-  //download
-  const handleDownload = async () => {
-        
-    if (uploadedImageUrl) {
-        try {
-            const response = await fetch(`http://127.0.0.1:5000/${uploadedImageUrl}`);
-            console.log("successful",response);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+    //download
+    const handleDownload = async () => {
 
-            // Create a temporary link element
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'processed_image.jpg'; // Set the desired file name
-            document.body.appendChild(link);
+        if (uploadedImageUrl) {
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/${uploadedImageUrl}`);
+                console.log("successful", response);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
 
-            // Programmatically click the link to trigger the download
-            link.click();
+                // Create a temporary link element
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'processed_image.jpg'; // Set the desired file name
+                document.body.appendChild(link);
 
-            // Clean up by removing the link and revoking the URL object
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Error downloading image:', error);
+                // Programmatically click the link to trigger the download
+                link.click();
+
+                // Clean up by removing the link and revoking the URL object
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error downloading image:', error);
+            }
         }
-    }
-};  
+    };
 
     // Function to handle confirm button click
     const handleConfirm = async () => {
         // Send selected faces to the server
-        console.log('selected faces',selectedFaces);
-        console.log('selected file',selectedFile);
-        
+        console.log('selected faces', selectedFaces);
+        console.log('selected file', selectedFile);
+
         try {
             const response = await fetch('http://127.0.0.1:5000/api/selected-faces', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ selectedFaces,blurFactor,imagePath,selectedFile}), // Send selected faces as JSON
+                body: JSON.stringify({ selectedFaces, blurFactor, imagePath, selectedFile }), // Send selected faces as JSON
             });
 
             if (response.ok) {
                 // Handle success
-                const data= await response.json();
+                const data = await response.json();
                 console.log('Selected faces sent successfully');
                 setUploadedImageUrl(data.output_path);
             } else {
@@ -129,7 +131,7 @@ export default function FileUpload() {
                         <div className="mt-4 flex text-sm leading-6 text-gray-600">
                             <label htmlFor="file-upload" className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">
                                 <span>Upload a file</span>
-                                <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileUpload} />
+                                <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileUpload}/>
                             </label>
                             <p className="pl-1">or drag and drop</p>
                         </div>
@@ -149,23 +151,30 @@ export default function FileUpload() {
             </div>
 
             {imagePath && (
-                <div>
+                <div style={{width:"80%"}}>
                     <h2>Detected Faces</h2>
-                    <img src={'http://127.0.0.1:5000/' + imagePath} alt="Detected Faces" style={{ maxWidth: '100%', marginBottom: '10px' }} />
-                    <select multiple value={selectedFaces.map(String)} onChange={(e) => setSelectedFaces(Array.from(e.target.selectedOptions, (option) => parseInt(option.value)))}>
-
-                        {detectedFaces.map((face, index) => (
-                            <option key={index} value={index}>Face {index}</option>
-                        ))}
-                    </select>
                     <br/>
-                    <button type="button" 
-                   className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" onClick={handleConfirm}>Confirm Selected Faces</button>
+                    <img src={'http://127.0.0.1:5000/' + imagePath} alt="Detected Faces" style={{ width: '100%', marginBottom: '10px' }} />
+                    <div className="bg-danger hover:bg-blue-700 text-black font-bold py-2 px-4 rounded mt-2">
+                        <select multiple value={selectedFaces.map(String)} onChange={(e) => setSelectedFaces(Array.from(e.target.selectedOptions, (option) => parseInt(option.value)))} style={{width:"60%",marginTop:"10%"}}>
+                        <option key="" value="">Select Face </option>
+                            {detectedFaces.map((face, index) => (
+                                <option key={index} value={index}>Face {index}</option>
+                            ))}
+                        </select></div>
+
+                    <br />
+
+                    <button type="button"
+                        className="bg-success  hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" onClick={handleConfirm}>Confirm Selected Faces</button>
                 </div>
+
             )}
+
+
             {errorMessage && <p>{errorMessage}</p>}
 
-            <br/>
+            <br />
             <br />
             {uploadedImageUrl && (
                 <div>
@@ -174,11 +183,11 @@ export default function FileUpload() {
                     <br />
                     <button type="button" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" onClick={handleDownload}>Download Processed Image</button>
                 </div>
-                
+
             )}
 
         </div>
 
-        
+
     );
 }

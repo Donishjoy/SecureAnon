@@ -152,7 +152,8 @@ const handleSubmit=async()=>{
                                                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                                                             <LockClosedIcon className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" aria-hidden="true" />
                                                         </span>
-                                                        Register Now
+                                                        <a href='/Signout'>Register Now</a>
+                                                        
                                                     </button>
                                                 </div>
                                             </form>

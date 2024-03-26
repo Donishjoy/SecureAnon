@@ -4,8 +4,9 @@ import Link from 'next/link';
 import React from 'react';
 import Drawer from "./Drawer";
 import Drawerdata from "./Drawerdata";
-import Signdialog from "./Signdialog";
+
 import Registerdialog from "./Registerdialog";
+import Signin from '../Sigin';
 
 
 interface NavigationItem {
@@ -14,12 +15,11 @@ interface NavigationItem {
     current: boolean;
 }
 
+
 const navigation: NavigationItem[] = [
     { name: 'Home', href: '/', current: true },
     { name: 'Services', href: '#services', current: false },
-    { name: 'About', href: '#about', current: false },
-    { name: 'Project', href: '#project', current: false },
-    { name: 'Help', href: '/', current: false },
+    { name: 'Project', href: '#about', current: false },
 ]
 
 function classNames(...classes: string[]) {
@@ -75,7 +75,7 @@ const Navbar = () => {
 
                         {/* SIGNIN DIALOG */}
 
-                        <Signdialog />
+                        <Signin />
 
 
                         {/* REGISTER DIALOG */}

@@ -17,7 +17,8 @@ def save_frames_to_db(video_path, video_id, reference_image_path):
 
     # Initialize easyOCR reader with GPU
     reader = easyocr.Reader(['en'], gpu=True)
-
+    print("CompareDB")
+    print("videoid",video_id," video_path",video_path)
     # Load the reference image for face recognition
     reference_image = face_recognition.load_image_file(reference_image_path)
     reference_encoding = face_recognition.face_encodings(reference_image)[0]
@@ -78,7 +79,7 @@ def save_frames_to_db(video_path, video_id, reference_image_path):
 
         # Update the "blur" field in MongoDB for the current frame
         frames_collection.update_one(update_query, new_values)
-
+        print(count)
         count += 1
 
 # Driver code

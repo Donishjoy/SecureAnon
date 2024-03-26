@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from 'react';
+import {Spinner} from "@nextui-org/react";
 export default function FileUpload() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
@@ -111,6 +112,7 @@ export default function FileUpload() {
                 </div>
                 
             )}
+            <Spinner/>
             <div>
                 <br/>
                 

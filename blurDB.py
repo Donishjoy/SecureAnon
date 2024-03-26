@@ -13,11 +13,11 @@ output_folder = os.path.join("comparison")
 video_id = "03"  # Set the video ID here
 
 # Function to blur faces based on face locations and save frames to a folder
-def blur_and_save_frames(video_path):
+def blur_and_save_frames(video_path,video_id):
 
     # Path to video file
     vid_obj = cv2.VideoCapture(video_path)
-
+    print("blurDB")
     # Counter variable
     count = 0
 

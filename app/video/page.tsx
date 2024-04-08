@@ -1,39 +1,91 @@
 'use client'
 import React, { useState } from 'react';
-import { Progress } from "@nextui-org/react";
-
+import { ClimbingBoxLoader } from 'react-spinners';
+import { useRouter } from 'next/navigation';
+import { ToastContainer,toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 export default function FileUpload() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [VideoUrl, setUploadedVideoUrl] = useState<string>('');
     const [videoId,setVideoId]=useState<string>('');
     const [video_path,setVideoPath] = useState<string>('');
+    let[loading,setLoading]=useState(false);   
+    let[background,setBackground]=useState(false);
 
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            setSelectedFile(event.target.files[0]);
-        }
-    };
+const router=useRouter();
 
-    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            console.log("function",event.target.files[0]);
-            setSelectedImage(event.target.files[0]);
-        }
-    };
+const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const File = event.target.files[0];
+      if (File.type.startsWith('video/')) {
+        setSelectedFile(File);
+      } else {
+        toast.error('⚠️ Please select a video file', {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'colored',
+        });
+      }
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const selectedImage = event.target.files[0];
+      if (selectedImage.type.startsWith('image/')) {
+        setSelectedImage(selectedImage);
+      } else {
+        toast.error('⚠️ Please select an image file', {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'colored',
+        });
+      }
+    }
+  };
 
     const handleSubmit = async () => {
         if (!selectedFile) {
+            toast.error('⚠️ Please select a file', {
+                position:"top-right",
+                autoClose: 5000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+                
+                });
             return;
         }
-
+        
+        const token=localStorage.getItem('token');
+        if(!token){
+            router.push('/Signin');
+        }
         const formData = new FormData();
         formData.append('file', selectedFile);
-
+        setBackground(true);
+        setLoading(true);
         try {
             const response = await fetch('http://127.0.0.1:5000/api/videoupload', {
                 method: 'POST',
                 body: formData,
+                headers:{
+                    'Authorization':`Bearer ${token}`
+                }
             });
 
             if (response.ok) {
@@ -41,7 +93,9 @@ export default function FileUpload() {
                 console.log("data",data); 
                 setVideoId(data.video_id);
                 setVideoPath(data.file_path);
-
+                setLoading(false);
+                setBackground(false);
+                
             } else {
                 console.error('Failed to process file');
             }
@@ -54,6 +108,17 @@ export default function FileUpload() {
     const handleprocess = async () => {
         console.log("selected Image", selectedImage);
         if (!selectedImage) {
+            toast.error('⚠️ Please select a file', {
+                position:"top-right",
+                autoClose: 5000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+                
+                });
             return;
         }
         console.log("videoid and path", video_path, videoId);
@@ -63,11 +128,18 @@ export default function FileUpload() {
         formData.append('file', selectedImage);
         formData.append('video_path', video_path);
         formData.append('video_id', videoId);
-    
+        const token=localStorage.getItem('token');
+        if(!token){
+            router.push('/Signin');
+        }
+        setLoading(true);
         try {
             const response = await fetch('http://127.0.0.1:5000/api/reference', {
                 method: 'POST',
                 body: formData,
+                headers:{
+                    'Authorization':`Bearer ${token}`
+                }
             });
     
             if (response.ok) {
@@ -113,9 +185,32 @@ export default function FileUpload() {
     
 
     return (
+        
         <div style={{ backgroundColor: 'white', padding: '20px', maxWidth: '60%', margin: 'auto', alignContent: 'center', overflowY: 'auto',scrollBehavior:'smooth',marginBottom:'10%' }}>
             <br />
-            <div className="col-span-full">
+            <ClimbingBoxLoader
+  color="#21ba04"
+  size={25}
+  speedMultiplier={1}
+  loading={loading}
+  style={{marginTop:'50%',marginRight:'50%',marginBottom:'50%', marginLeft:'50%'}}
+/>
+<ToastContainer
+position="top-right"
+autoClose={5000}
+hideProgressBar={false}
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
+{/* Same as */}
+<ToastContainer />
+<div hidden={background}>
+            <div className="col-span-full" >
                 <label htmlFor="file-upload" >Upload Video</label>
                 <br />
                 <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
@@ -125,10 +220,10 @@ export default function FileUpload() {
                         </svg>
                         <div className="mt-4 flex text-sm leading-6 text-gray-600">
                             <label htmlFor="file-upload" className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">
-                                <span>Upload a file</span>
+                                <span>Upload a video file</span>
                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileUpload} />
                             </label>
-                            <p className="pl-1">or drag and drop</p>
+                         
                         </div>
                         <p className="text-xs leading-5 text-gray-600">MP4</p>
                     </div>
@@ -150,10 +245,10 @@ export default function FileUpload() {
                         </svg>
                         <div className="mt-4 flex text-sm leading-6 text-gray-600">
                             <label htmlFor="image-upload" className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">
-                                <span>Upload a file</span>
-                                <input id="image-upload" name="image-upload" type="file" className="sr-only" onChange={handleImageUpload} />
+                                <span>Upload an image file</span>
+                                <input id="image-upload" name="image-upload" type="file"  className="sr-only" onChange={handleImageUpload} />
                             </label>
-                            <p className="pl-1">or drag and drop</p>
+          
                         </div>
                         <p className="text-xs leading-5 text-gray-600">PNG , JPEG</p>
                     </div>
@@ -175,6 +270,7 @@ export default function FileUpload() {
             <div>
                 <br/>
 
+            </div>
             </div>
         </div>
     );

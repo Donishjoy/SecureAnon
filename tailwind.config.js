@@ -25,6 +25,7 @@ module.exports = {
       'bordertop' : 'rgba(196, 196, 196, 0.5);',
       'blue-500' : '#0075FF',
       'secondary':'#9353d3',
+      'danger':'#bb2124',
       'warning':'#f5a524',
       'success':'#17c964',
       'darkgray' : '#90A3B4',

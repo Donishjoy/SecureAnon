@@ -7,7 +7,7 @@ import datetime
 client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
 db = client["face"]  # Replace with your database name
 frames_collection = db["Anonymize"]  # Replace with your collection name
-
+video_info_collection = db["video_info"]
 output_folder = os.path.join("frames")
   # Set the video ID here
 video_id='1'
@@ -15,7 +15,7 @@ video_id='1'
 dlib.DLIB_USE_CUDA = True
 
 # Function to extract frames, detect faces, save frames, and add details to MongoDB
-def save_frames_to_db(video_path, output_folder, video_id,currentuser):
+def save_frames_to_db(video_path,output_folder,video_id,currentuser):
 
     # Path to video file
     vid_obj = cv2.VideoCapture(video_path)

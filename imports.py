@@ -13,6 +13,7 @@ import blurDB
 import combineDB
 import framesGPU
 import connection
+import audioDB
 from bson.json_util import dumps,loads 
 import bcrypt
 from flask_jwt_extended import JWTManager,create_access_token,create_refresh_token,get_jwt_identity,jwt_required
@@ -23,3 +24,6 @@ from faceblurapp import FaceBlurApp
 from facedetecterapp import FaceDetector
 import easyocr
 from datetime import timedelta
+from flask import session
+from flask_login import LoginManager, UserMixin, login_user, current_user
+from moviepy.editor import *

@@ -6,7 +6,7 @@ import datetime
 client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
 db = client["face"]  # Replace with your database name
 frames_collection = db["Anonymize"]  # Replace with your collection name
-
+video_info_collection = db["video_info"]
 output_folder = "comparison"
 video_id = "03"  # Set the video ID here
 destination="output"
@@ -40,6 +40,9 @@ def combine_frames_from_db(currentuser,video_id):
 
         video_writer.release()
         print("Frames combined into 'combined_video.mp4'.")
+        update_query={"video_id":video_id}
+        new_values = {"$set": {"output_path": video_filename}}
+        video_info_collection.update_one(update_query,new_values)
         return video_filename
 # Driver code
 if __name__ == "__main__":

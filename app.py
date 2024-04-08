@@ -1,16 +1,21 @@
 from imports import *
+
 # Connect to MongoDB (replace with your connection details)
 client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
 db = client["face"]  # Replace with your database name
 frames_collection = db["Image"]  # Replace with your collection name
 selective_collection=db["Selective"]
 user_collection=db["User"]
-current_user='don@gmail.com'
 app = Flask(__name__)
 CORS(app)
-jwt=JWTManager(app)
+jt=JWTManager(app)
+current_user='don@gmail.com'
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+
 app.config['JWT_SECRET_KEY']=os.environ.get('JWT_SECRET_KEY')
-exp=app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
+exp=app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=10)
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
 STATIC_FOLDER='static'
@@ -23,78 +28,100 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.config['STATIC_FOLDER'] = STATIC_FOLDER
 
+def load_user(email): 
+    data=user_collection.find_one({'email': email})
+    if data:
+        return data
+    else:
+        return 201
 
+def verify():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'No JWT token provided'}), 401
+
+    token = auth_header.split()[1]
+    print(token)
+    decoded_token = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms='HS256')
+    user_identity = decoded_token['sub'] 
+    print("user",user_identity)
+    ver=load_user(user_identity)    
+    return ver,user_identity
 @app.route('/api/file', methods=['POST'])
 
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
+    ver,user_identity=verify()
+    if ver:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
 
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user+timestamp+file.filename)
-    file.save(file_path)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
+        file.save(file_path)
 
-    blur_factor = int(request.form.get('blur_factor', 3))  # Default blur factor is 3
-    blur_all_faces = request.form.get('blur_all_faces', 'true').lower() == 'true'
-    face_blurrer = FaceBlurApp()
-    output_filename = 'blurred_' +current_user+timestamp+ file.filename
-    print(output_filename)
-    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-    faces=face_blurrer.run(file_path, output_path, blur_factor)
-    print(faces)
-    image_data={
-    'userId': 1,
-    'image_path': file_path,
-    'output_path': output_path,
-    'blur_factor': blur_factor,
-    'faces': [{'coordinates': [int(x) for x in face['coordinates']]} for face in faces]  # Convert coordinates to integers
-    }
-    frames_collection.insert_one(image_data)
-    return jsonify({'message': 'File processed successfully', 'output_path': output_path}), 200
+        blur_factor = int(request.form.get('blur_factor', 3))  # Default blur factor is 3
+        blur_all_faces = request.form.get('blur_all_faces', 'true').lower() == 'true'
+        face_blurrer = FaceBlurApp()
+        output_filename = 'blurred_' +user_identity+timestamp+ file.filename
+        print(output_filename)
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        faces=face_blurrer.run(file_path, output_path, blur_factor)
+        print(faces)
+        image_data={
+        'userId': 1,
+        'image_path': file_path,
+        'output_path': output_path,
+        'blur_factor': blur_factor,
+        'faces': [{'coordinates': [int(x) for x in face['coordinates']]} for face in faces]  # Convert coordinates to integers
+        }
+        frames_collection.insert_one(image_data)
+        return jsonify({'message': 'File processed successfully', 'output_path': output_path}), 200
 
 
 @app.route('/api/face', methods=['POST'])
 def uploads_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
+    ver,user_identity=verify()
+    if ver:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
 
-    file = request.files['file']
-    f1=request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user+timestamp+file.filename)
-    
-    file.save(file_path)
-    print("f1",f1.filename)
-    static_path=os.path.join(app.config['STATIC_FOLDER'],current_user+timestamp+f1.filename)
-    shutil.copy(file_path,static_path)
-    face_detector = FaceDetector()
-    detected_faces = face_detector.detect_faces(file_path)
-    print('face_detector detected',detected_faces)
-    # Convert int32 values to Python integers for JSON serialization
-    for face_list in detected_faces:
-            face_list['coordinates'] = [int(coord) for coord in face_list['coordinates']]
-
-    response_data = {
+        file = request.files['file']
+        f1=request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
         
-        'detected_faces': detected_faces,
-        'image_path': file_path
-    }   
-    selective_image={
-        'userId':1,
-        'image_path':file_path,
-        'faces':detected_faces,
-        'static_path':static_path}
-    
-    selective_collection.insert_one(selective_image)
-    return jsonify(response_data), 200
+        file.save(file_path)
+        print("f1",f1.filename)
+        static_path=os.path.join(app.config['STATIC_FOLDER'],user_identity+timestamp+f1.filename)
+        shutil.copy(file_path,static_path)
+        face_detector = FaceDetector()
+        detected_faces = face_detector.detect_faces(file_path)
+        print('face_detector detected',detected_faces)
+        # Convert int32 values to Python integers for JSON serialization
+        for face_list in detected_faces:
+                face_list['coordinates'] = [int(coord) for coord in face_list['coordinates']]
+
+        response_data = {
+            
+            'detected_faces': detected_faces,
+            'image_path': file_path
+        }   
+        selective_image={
+            'userId':1,
+            'image_path':file_path,
+            'faces':detected_faces,
+            'static_path':static_path}
+        
+        selective_collection.insert_one(selective_image)
+        return jsonify(response_data), 200
 
 @app.route('/api/selected-faces', methods=['POST'])
 def select():
@@ -147,49 +174,54 @@ def get_face_image(filename):
 
 @app.route('/api/videoupload',methods=['POST'])
 def video_upload():
-        if 'file' not in request.files:
-            return jsonify({'error':'No file part'}), 400
-        file=request.files['file']
-        if file.filename=='':
-            return jsonify({'error':'No file is selected'}), 400
-        now = datetime.datetime.now()
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
-        file_path=os.path.join(app.config['UPLOAD_FOLDER'],current_user+timestamp+file.filename)
-        file.save(file_path)
-        output_folder = os.path.join("frames")
-        video_id =current_user+timestamp  # Set the video ID here
-        framesGPU.save_frames_to_db(file_path,output_folder,video_id,current_user)
-        return jsonify({'file_path':file_path,'video_id':video_id})
+        ver,user_identity=verify()
+        if ver:
+            if 'file' not in request.files:
+                return jsonify({'error':'No file part'}), 400
+            file=request.files['file']
+            if file.filename=='':
+                return jsonify({'error':'No file is selected'}), 400
+            now = datetime.datetime.now()
+            timestamp = now.strftime("%Y%m%d_%H%M%S")
+            file_path=os.path.join(app.config['UPLOAD_FOLDER'],user_identity+timestamp+file.filename)
+            file.save(file_path)
+            output_folder = os.path.join("frames")
+            video_id =user_identity+timestamp  # Set the video ID here
+            framesGPU.save_frames_to_db(file_path,output_folder,video_id,user_identity)
+            return jsonify({'file_path':file_path,'video_id':video_id})
     
 @app.route('/api/reference', methods=['POST'])
 def reference():
+    ver,user_identity=verify()
+    if ver:
     # Check if 'file' exists in request.files
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
-    # Get the file from the request
-    file = request.files['file']
-    
-    # Check if a file was provided
-    if file.filename == '':
-        return jsonify({'error': 'No file is selected'}), 400
-    
-    # Save the file to the upload folder
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user+timestamp+file.filename)
-    file.save(file_path)
-    
-    # Get other data from the request body
-    video_path = request.form['video_path']
-    video_id = request.form['video_id']
-    
-    # Perform further processing (assuming compareDB is defined somewhere)
-    compareDB.save_frames_to_db(video_path, video_id, file_path)
-    blurDB.blur_and_save_frames(video_path,video_id)
-    output_file=combineDB.combine_frames_from_db(current_user,video_id)
-    
-    return jsonify({'success': 'Video has been compared.','output': output_file})
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+        
+        # Get the file from the request
+        file = request.files['file']
+        
+        # Check if a file was provided
+        if file.filename == '':
+            return jsonify({'error': 'No file is selected'}), 400
+        
+        # Save the file to the upload folder
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
+        file.save(file_path)
+        
+        # Get other data from the request body
+        video_path = request.form['video_path']
+        video_id = request.form['video_id']
+        
+        audioDB.extract_audio(video_path,video_id)
+        compareDB.save_frames_to_db(video_path, video_id, file_path)
+        blurDB.blur_and_save_frames(video_path,video_id)
+        output_file=combineDB.combine_frames_from_db(user_identity,video_id)
+        combined_video=audioDB.combine_audio(video_id)
+        print(combined_video)
+        return jsonify({'success': 'Video has been compared.','output': combined_video})
    
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -197,7 +229,7 @@ def register():
     password=request.form.get('password')
     check=user_collection.find_one({'email':email})
     if check:
-        return jsonify({'msg':'Username already registered'})
+        return jsonify({'msg':'Username already registered','status_code':500})
     else:
         hashed=connection.register(password)
         frames_data={
@@ -207,13 +239,14 @@ def register():
         print("frames",frames_data)
         con=user_collection.insert_one(frames_data)
         if con:
-            return jsonify({'msg':'Registration Complete'})
+            return jsonify({'msg':'Registration Complete','status_code':201}),201
         else:
-            return jsonify({'msg':'Registration Failure'})
+            return jsonify({'msg':'Registration Failure','status_code':500}),500
 
 
 @app.route('/api/login',methods=['POST'])
 def reg():
+    print(app.config['JWT_SECRET_KEY'])
     email=request.form.get('email')
     passd=request.form.get('passw')
     print(email,passd)
@@ -233,7 +266,7 @@ def reg():
 @jwt_required()  # Ensure JWT token is present and valid
 def protected():
     current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200    
+    return jsonify(current_user), 200    
 
 
     

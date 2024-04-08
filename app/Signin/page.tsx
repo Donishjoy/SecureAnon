@@ -1,4 +1,4 @@
-import Signin from "../components/Sigin";
+import Signin from "@/components/Navbar/Signdialog";
 async function page(){
     return(
         <Signin/>

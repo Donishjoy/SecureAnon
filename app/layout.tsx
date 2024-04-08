@@ -1,5 +1,5 @@
 import './globals.css';
-import Navbar from './components/Navbar/index';
+import Navbar from '@/components/Navbar/Navbar';
 
 export const metadata = {
   title: 'SecureAnon',
@@ -15,6 +15,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Navbar />
+        <div style={{marginTop:"10%"}}></div>
         {children}
         {/* <Footer /> */}
       </body>

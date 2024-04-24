@@ -6,6 +6,7 @@ db = client["face"]  # Replace with your database name
 frames_collection = db["Image"]  # Replace with your collection name
 selective_collection=db["Selective"]
 user_collection=db["User"]
+otp_collection=db["Otp"] # Replace with your collection name
 app = Flask(__name__)
 CORS(app)
 jt=JWTManager(app)
@@ -13,9 +14,10 @@ current_user='don@gmail.com'
 # Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
+mail=Mail(app)
 
 app.config['JWT_SECRET_KEY']=os.environ.get('JWT_SECRET_KEY')
-exp=app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=10)
+exp=app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=0)
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
 STATIC_FOLDER='static'
@@ -35,22 +37,28 @@ def load_user(email):
     else:
         return 201
 
-def verify():
+def verification():
+    print(app.config['JWT_SECRET_KEY'])
     auth_header = request.headers.get('Authorization')
+    print("authentication", auth_header)
     if not auth_header or not auth_header.startswith('Bearer '):
+        print("no jet token is provided")
         return jsonify({'error': 'No JWT token provided'}), 401
 
     token = auth_header.split()[1]
     print(token)
     decoded_token = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms='HS256')
-    user_identity = decoded_token['sub'] 
-    print("user",user_identity)
-    ver=load_user(user_identity)    
-    return ver,user_identity
+    print("decoded_token", decoded_token)
+    user_identity = decoded_token['sub']
+    print("useridentity", user_identity)
+    ver = load_user(user_identity)
+    return ver, user_identity
 @app.route('/api/file', methods=['POST'])
 
 def upload_file():
-    ver,user_identity=verify()
+
+    ver,user_identity=verification()
+    print("file upload",user_identity)
     if ver:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -60,7 +68,7 @@ def upload_file():
             return jsonify({'error': 'No file selected'}), 400
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
-
+        
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
         file.save(file_path)
 
@@ -85,7 +93,7 @@ def upload_file():
 
 @app.route('/api/face', methods=['POST'])
 def uploads_file():
-    ver,user_identity=verify()
+    ver,user_identity=verification()
     if ver:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -150,7 +158,7 @@ def select():
 
             # Adjust sigma based on blur factor (modify as needed)
             kernel_size = 5  # Adjust kernel size as needed (should be odd)
-            sigma = blur_factor * math.log(blur_factor + 1, 2)  # Scale blur factor (adjust multiplier if needed)
+            sigma = 30 * math.log(blur_factor + 5, 2)  # Scale blur factor (adjust multiplier if needed)
             blurred_face = cv2.GaussianBlur(face_roi, (kernel_size, kernel_size), sigma, sigma)
 
             blurred_image[face['coordinates'][1]:face['coordinates'][3],
@@ -174,7 +182,7 @@ def get_face_image(filename):
 
 @app.route('/api/videoupload',methods=['POST'])
 def video_upload():
-        ver,user_identity=verify()
+        ver,user_identity=verification()
         if ver:
             if 'file' not in request.files:
                 return jsonify({'error':'No file part'}), 400
@@ -192,7 +200,7 @@ def video_upload():
     
 @app.route('/api/reference', methods=['POST'])
 def reference():
-    ver,user_identity=verify()
+    ver,user_identity=verification()
     if ver:
     # Check if 'file' exists in request.files
         if 'file' not in request.files:
@@ -223,30 +231,77 @@ def reference():
         print(combined_video)
         return jsonify({'success': 'Video has been compared.','output': combined_video})
    
+
 @app.route('/api/register', methods=['POST'])
 def register():
-    email=request.form.get('email')
-    password=request.form.get('password')
-    check=user_collection.find_one({'email':email})
+    email = request.form.get('email')
+    check = user_collection.find_one({'email': email})
     if check:
-        return jsonify({'msg':'Username already registered','status_code':500})
+        return jsonify({'msg': 'Username already registered', 'status_code': 500})
     else:
-        hashed=connection.register(password)
-        frames_data={
-            'email': email,
-            'password': hashed
-        }
-        print("frames",frames_data)
-        con=user_collection.insert_one(frames_data)
-        if con:
-            return jsonify({'msg':'Registration Complete','status_code':201}),201
+        old = otp_collection.find_one({'email': email})
+        otp = sendemail.verify(email)
+        print(otp)
+        current_timestamp = datetime.datetime.now().timestamp()
+        if old:
+            con = otp_collection.update_one({'email': email}, {'$set': {'otp': otp, 'timestamp': current_timestamp}})
+            if con:
+                return jsonify({'msg': 'OTP send successfully', 'email': email, 'otp': otp, 'status_code': 201}), 201
+            else:
+                return jsonify({'msg': 'Registration Failure', 'status_code': 500}), 500
         else:
-            return jsonify({'msg':'Registration Failure','status_code':500}),500
+            frames_data = {
+                'email': email,
+                'otp': otp,
+                'timestamp': current_timestamp
+            }
 
+        con = otp_collection.insert_one(frames_data)
+        if con:
+            return jsonify({'msg': 'OTP send successfully', 'email': email, 'otp': otp, 'status_code': 201}), 201
+        else:
+            return jsonify({'msg': 'Registration Failure', 'status_code': 500}), 500
+
+
+import datetime
+
+@app.route('/api/verify', methods=['POST'])
+def verify():
+    email = request.form.get('email')
+    otp = request.form.get('otp')
+    password = request.form.get('password')
+    
+    # Check OTP from the otp_collection
+    check = otp_collection.find_one({'email': email})
+    
+    if check and int(otp) == check['otp']:
+        # Check if OTP is within the valid time frame (10 minutes)
+        otp_timestamp = check.get('timestamp', 0)
+        current_timestamp = datetime.datetime.now().timestamp()
+        if current_timestamp - otp_timestamp <= 600:  # 600 seconds = 10 minutes
+            hashed = connection.register(password)
+            frames_data = {
+                'email': email,
+                'password': hashed,
+            }
+            con = user_collection.insert_one(frames_data)
+            
+            if con:
+                otp_collection.delete_one({'email':email})
+                return jsonify({'msg': 'Registration successfully', 'status_code': 201}), 201
+            else:
+                return jsonify({'msg': 'Registration Failure', 'status_code': 500}), 500
+        else:
+            return jsonify({'msg': 'OTP expired', 'status_code': 401}), 401
+    else:
+        return jsonify({'msg': 'Invalid OTP', 'status_code': 401}), 401
+@jwt_required
+def curr():
+    current_user = get_jwt_identity()
+    return jsonify(current_user), 200   
 
 @app.route('/api/login',methods=['POST'])
 def reg():
-    print(app.config['JWT_SECRET_KEY'])
     email=request.form.get('email')
     passd=request.form.get('passw')
     print(email,passd)
@@ -257,6 +312,8 @@ def reg():
     if bcrypt.checkpw(pa,hashed):
         #access token creation
         access_token=create_access_token(identity=email)
+        print(app.config['JWT_SECRET_KEY'])
+        
         return jsonify({'msg':'Login successful','token':access_token})
     else:
         return jsonify({'msg':'Invalid password'})

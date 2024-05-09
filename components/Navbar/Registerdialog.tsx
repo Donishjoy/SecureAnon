@@ -2,42 +2,48 @@
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 import { LockClosedIcon } from '@heroicons/react/20/solid'
+import { useRouter } from 'next/navigation'
 
-
-export default function Signin() {
-    let [isOpen, setIsOpen] = useState(false)
-    const [username, setusername] = useState<string>('');
-    const [pass, setPassword] = useState<string>('');
-    const closeModal = () => {
-        setIsOpen(false)
-    }
-
-
+export default function Register() {
+    let [isOpen, setIsOpen] = useState(true)
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [msg,setMsg]=useState<string>('');
     const handleEmail = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        setusername(event.target.value);
+        setEmail(event.target.value);
     }
+
+    const router=useRouter();
     const handlePassword = async (event: React.ChangeEvent<HTMLInputElement>) => {
         setPassword(event.target.value);
     }
 
     const handleSubmit = async () => {
-        console.log(username, pass);
+        console.log(email, password);
         const formdata = new FormData();
-        formdata.append('email', username);
-        formdata.append('passw', pass);
+        formdata.append('email', email);
+        formdata.append('password', password);
 
-        const response = await fetch('http://127.0.0.1:5000/api/login', {
+        const response = await fetch('http://127.0.0.1:5000/api/register', {
             method: 'POST',
-            body: formdata
+            body: formdata,
         });
+
         if (response.ok) {
             const data = await response.json();
-            console.log(data.msg, data.token);
-            if (data.token){
-  
+            console.log(data.msg);
+            console.log(data.status_code);
+            setMsg(data.msg);
+            
+            if(data.status_code==201){
+                setIsOpen(false);
+                router.push('/Signin');
             }
+             
         }
-
+    }
+    const closeModal = () => {
+        setIsOpen(false)
     }
 
     const openModal = () => {
@@ -46,14 +52,6 @@ export default function Signin() {
 
     return (
         <>
-            <div className="absolute inset-y-0 right-0 flex items-center sm:static sm:inset-auto sm:pr-0">
-                <div className='hidden lg:block'>
-                    <button type="button" className='text-lg text-blue font-medium' onClick={openModal}>
-                        Sign In
-                    </button>
-                </div>
-            </div>
-
             <Transition appear show={isOpen} as={Fragment}>
                 <Dialog as="div" className="relative z-10" onClose={closeModal}>
                     <Transition.Child
@@ -67,6 +65,7 @@ export default function Signin() {
                     >
                         <div className="fixed inset-0 bg-black bg-opacity-25" />
                     </Transition.Child>
+
                     <div className="fixed inset-0 overflow-y-auto">
                         <div className="flex min-h-full items-center justify-center p-4 text-center">
                             <Transition.Child
@@ -86,13 +85,13 @@ export default function Signin() {
                                                 <img
                                                     className="mx-auto h-12 w-auto"
                                                     src="/assets/logo/l1.svg"
-                                                    alt="Company"
+                                                    alt="Your Company"
                                                 />
                                                 <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-                                                    Sign in to your account
+                                                    Register your account
                                                 </h2>
                                             </div>
-                                            <form className="mt-8 space-y-6" method="POST">
+                                            <form className="mt-8 space-y-6" action="#" method="POST">
                                                 <input type="hidden" name="remember" defaultValue="true" />
                                                 <div className="-space-y-px rounded-md shadow-sm">
                                                     <div>
@@ -110,7 +109,9 @@ export default function Signin() {
                                                             onChange={handleEmail}
                                                         />
                                                     </div>
-                                                    <br></br>
+                                                    <br>
+                                                    </br>
+
                                                     <div>
                                                         <label htmlFor="password" className="sr-only">
                                                             Password
@@ -129,40 +130,36 @@ export default function Signin() {
                                                 </div>
 
                                                 <div className="flex items-center justify-between">
-
-
-                                                    <div className="text-sm">
-                                                        <a href='/Signup' className="font-medium text-indigo-600 hover:text-indigo-500">
-                                                           Not Registered
+                                                    <div className="flex items-center">
+                                                        <a href='/Signin'>
+                                                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                                                                Already Registered
+                                                            </label>
                                                         </a>
                                                     </div>
+
                                                 </div>
 
                                                 <div>
                                                     <button
                                                         type="submit"
-                                                        className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                                        onClick={handleSubmit} >
+                                                        className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue py-2 px-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                        onClick={handleSubmit}
+                                                    >
                                                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                                                             <LockClosedIcon className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" aria-hidden="true" />
                                                         </span>
-                                                        Sign in
+                                                        Register Now
                                                     </button>
+                                                </div>
+                                                <div ><center><h3  className='text-danger'>{msg}</h3></center> 
                                                 </div>
                                             </form>
                                         </div>
                                     </div>
 
 
-                                    <div className="mt-4 flex justify-end">
-                                        <button
-                                            type="button"
-                                            className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                                            onClick={closeModal}
-                                        >
-                                            Got it, thanks!
-                                        </button>
-                                    </div>
+
                                 </Dialog.Panel>
                             </Transition.Child>
                         </div>

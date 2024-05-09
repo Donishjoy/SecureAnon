@@ -5,12 +5,18 @@ db = client["face"]  # Replace with your database name
 frames_collection = db["Image"]  # Replace with your collection name
 selective_collection=db["Selective"]
 user_collection=db["User"]
-current_user='don@gmail.com'
+otp_collection=db["Otp"] # Replace with your collection name
 app = Flask(__name__)
 CORS(app)
-jwt=JWTManager(app)
+jt=JWTManager(app)
+current_user='don@gmail.com'
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+mail=Mail(app)
+
 app.config['JWT_SECRET_KEY']=os.environ.get('JWT_SECRET_KEY')
-exp=app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
+exp=app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=0)
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
 STATIC_FOLDER='static'
@@ -23,21 +29,47 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.config['STATIC_FOLDER'] = STATIC_FOLDER
 
+def load_user(email): 
+    data=user_collection.find_one({'email': email})
+    if data:
+        return data
+    else:
+        return 201
 
+def verification():
+    print(app.config['JWT_SECRET_KEY'])
+    auth_header = request.headers.get('Authorization')
+    print("authentication", auth_header)
+    if not auth_header or not auth_header.startswith('Bearer '):
+        print("no jet token is provided")
+        return jsonify({'error': 'No JWT token provided'}), 401
+
+    token = auth_header.split()[1]
+    print(token)
+    decoded_token = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms='HS256')
+    print("decoded_token", decoded_token)
+    user_identity = decoded_token['sub']
+    print("useridentity", user_identity)
+    ver = load_user(user_identity)
+    return ver, user_identity
 @app.route('/api/file', methods=['POST'])
 
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
 
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    ver,user_identity=verification()
+    print("file upload",user_identity)
+    if ver:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
 
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user+timestamp+file.filename)
-    file.save(file_path)
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
+        file.save(file_path)
 
     blur_factor = int(request.form.get('blur_factor', 3))  # Default blur factor is 3
     blur_all_faces = request.form.get('blur_all_faces', 'true').lower() == 'true'
@@ -60,8 +92,10 @@ def upload_file():
 
 @app.route('/api/face', methods=['POST'])
 def uploads_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
+    ver,user_identity=verification()
+    if ver:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
 
     file = request.files['file']
     f1=request.files['file']
@@ -147,57 +181,63 @@ def get_face_image(filename):
 
 @app.route('/api/videoupload',methods=['POST'])
 def video_upload():
-        if 'file' not in request.files:
-            return jsonify({'error':'No file part'}), 400
-        file=request.files['file']
-        if file.filename=='':
-            return jsonify({'error':'No file is selected'}), 400
-        now = datetime.datetime.now()
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
-        file_path=os.path.join(app.config['UPLOAD_FOLDER'],current_user+timestamp+file.filename)
-        file.save(file_path)
-        output_folder = os.path.join("frames")
-        video_id =current_user+timestamp  # Set the video ID here
-        framesGPU.save_frames_to_db(file_path,output_folder,video_id,current_user)
-        return jsonify({'file_path':file_path,'video_id':video_id})
+        ver,user_identity=verification()
+        if ver:
+            if 'file' not in request.files:
+                return jsonify({'error':'No file part'}), 400
+            file=request.files['file']
+            if file.filename=='':
+                return jsonify({'error':'No file is selected'}), 400
+            now = datetime.datetime.now()
+            timestamp = now.strftime("%Y%m%d_%H%M%S")
+            file_path=os.path.join(app.config['UPLOAD_FOLDER'],user_identity+timestamp+file.filename)
+            file.save(file_path)
+            output_folder = os.path.join("frames")
+            video_id =user_identity+timestamp  # Set the video ID here
+            framesGPU.save_frames_to_db(file_path,output_folder,video_id,user_identity)
+            return jsonify({'file_path':file_path,'video_id':video_id})
     
 @app.route('/api/reference', methods=['POST'])
 def reference():
+    ver,user_identity=verification()
+    if ver:
     # Check if 'file' exists in request.files
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
-    # Get the file from the request
-    file = request.files['file']
-    
-    # Check if a file was provided
-    if file.filename == '':
-        return jsonify({'error': 'No file is selected'}), 400
-    
-    # Save the file to the upload folder
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user+timestamp+file.filename)
-    file.save(file_path)
-    
-    # Get other data from the request body
-    video_path = request.form['video_path']
-    video_id = request.form['video_id']
-    
-    # Perform further processing (assuming compareDB is defined somewhere)
-    compareDB.save_frames_to_db(video_path, video_id, file_path)
-    blurDB.blur_and_save_frames(video_path,video_id)
-    output_file=combineDB.combine_frames_from_db(current_user,video_id)
-    
-    return jsonify({'success': 'Video has been compared.','output': output_file})
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+        
+        # Get the file from the request
+        file = request.files['file']
+        
+        # Check if a file was provided
+        if file.filename == '':
+            return jsonify({'error': 'No file is selected'}), 400
+        
+        # Save the file to the upload folder
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
+        file.save(file_path)
+        
+        # Get other data from the request body
+        video_path = request.form['video_path']
+        video_id = request.form['video_id']
+        
+        audioDB.extract_audio(video_path,video_id)
+        compareDB.save_frames_to_db(video_path, video_id, file_path)
+        blurDB.blur_and_save_frames(video_path,video_id)
+        output_file=combineDB.combine_frames_from_db(user_identity,video_id)
+        combined_video=audioDB.combine_audio(video_id)
+        print(combined_video)
+        return jsonify({'success': 'Video has been compared.','output': combined_video})
    
+
 @app.route('/api/register', methods=['POST'])
 def register():
     email=request.form.get('email')
     password=request.form.get('password')
     check=user_collection.find_one({'email':email})
     if check:
-        return jsonify({'msg':'Username already registered'})
+        return jsonify({'msg': 'Username already registered', 'status_code': 500})
     else:
         hashed=connection.register(password)
         frames_data={
@@ -207,13 +247,51 @@ def register():
         print("frames",frames_data)
         con=user_collection.insert_one(frames_data)
         if con:
-            return jsonify({'msg':'Registration Complete'})
+            return jsonify({'msg': 'OTP send successfully', 'email': email, 'otp': otp, 'status_code': 201}), 201
         else:
-            return jsonify({'msg':'Registration Failure'})
+            return jsonify({'msg': 'Registration Failure', 'status_code': 500}), 500
 
+
+import datetime
+
+@app.route('/api/verify', methods=['POST'])
+def verify():
+    email = request.form.get('email')
+    otp = request.form.get('otp')
+    password = request.form.get('password')
+    
+    # Check OTP from the otp_collection
+    check = otp_collection.find_one({'email': email})
+    
+    if check and int(otp) == check['otp']:
+        # Check if OTP is within the valid time frame (10 minutes)
+        otp_timestamp = check.get('timestamp', 0)
+        current_timestamp = datetime.datetime.now().timestamp()
+        if current_timestamp - otp_timestamp <= 600:  # 600 seconds = 10 minutes
+            hashed = connection.register(password)
+            frames_data = {
+                'email': email,
+                'password': hashed,
+            }
+            con = user_collection.insert_one(frames_data)
+            
+            if con:
+                otp_collection.delete_one({'email':email})
+                return jsonify({'msg': 'Registration successfully', 'status_code': 201}), 201
+            else:
+                return jsonify({'msg': 'Registration Failure', 'status_code': 500}), 500
+        else:
+            return jsonify({'msg': 'OTP expired', 'status_code': 401}), 401
+    else:
+        return jsonify({'msg': 'Invalid OTP', 'status_code': 401}), 401
+@jwt_required
+def curr():
+    current_user = get_jwt_identity()
+    return jsonify(current_user), 200   
 
 @app.route('/api/login',methods=['POST'])
 def reg():
+    print(app.config['JWT_SECRET_KEY'])
     email=request.form.get('email')
     passd=request.form.get('passw')
     print(email,passd)

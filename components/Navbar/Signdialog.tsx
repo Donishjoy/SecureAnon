@@ -1,49 +1,60 @@
 'use client'
 import { Dialog, Transition } from '@headlessui/react'
-import { Fragment, useState } from 'react'
+import { Fragment, use, useState } from 'react'
 import { LockClosedIcon } from '@heroicons/react/20/solid'
 import { useRouter } from 'next/navigation'
-
-export default function Register() {
+import { ClimbingBoxLoader } from 'react-spinners'
+export default function Signin() {
     let [isOpen, setIsOpen] = useState(true)
-    const [email, setEmail] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
+    let[loading,setLoading]=useState(false)
+    const [username, setusername] = useState<string>('');
+    const [pass, setPassword] = useState<string>('');
     const [msg,setMsg]=useState<string>('');
-    const handleEmail = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        setEmail(event.target.value);
-    }
+    const closeModal = () => {
+        setIsOpen(false);
+    };
 
-    const router=useRouter();
+
+    const handleEmail = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        setusername(event.target.value);
+    }
     const handlePassword = async (event: React.ChangeEvent<HTMLInputElement>) => {
         setPassword(event.target.value);
     }
-
+    const router = useRouter();
     const handleSubmit = async () => {
-        console.log(email, password);
+        console.log(username, pass);
         const formdata = new FormData();
-        formdata.append('email', email);
-        formdata.append('password', password);
-
-        const response = await fetch('http://127.0.0.1:5000/api/register', {
-            method: 'POST',
-            body: formdata,
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            console.log(data.msg);
-            console.log(data.status_code);
-            setMsg(data.msg);
-            
-            if(data.status_code==201){
-                setIsOpen(false);
-                router.push('/Signin');
-            }
-             
+        if(!username || !pass){
+            setMsg('Please enter username and password');
+        }else{
+            formdata.append('email', username);
+            formdata.append('passw', pass);
+            setIsOpen(false);
+            setLoading(true);
+            const response = await fetch('http://127.0.0.1:5000/api/login', {
+                method: 'POST',
+                body: formdata
+            });
+    
+            if (response.ok) {
+                const data = await response.json();
+                console.log(data.msg, data.token);
+                setMsg(data.msg)
+                if(data.token){
+                    
+                    localStorage.setItem('token', data.token);
+                    setLoading(false);
+                    router.push('/dashboard');
+    
+                }
+                else{
+                    setIsOpen(true);
+                }
         }
-    }
-    const closeModal = () => {
-        setIsOpen(false)
+ 
+        }
+
     }
 
     const openModal = () => {
@@ -52,6 +63,15 @@ export default function Register() {
 
     return (
         <>
+
+<ClimbingBoxLoader
+  color="#21ba04"
+  size={25}
+  speedMultiplier={1}
+  loading={loading}
+  style={{marginTop:'50%',marginRight:'50%',marginBottom:'50%', marginLeft:'50%'}}
+/>
+
             <Transition appear show={isOpen} as={Fragment}>
                 <Dialog as="div" className="relative z-10" onClose={closeModal}>
                     <Transition.Child
@@ -65,7 +85,6 @@ export default function Register() {
                     >
                         <div className="fixed inset-0 bg-black bg-opacity-25" />
                     </Transition.Child>
-
                     <div className="fixed inset-0 overflow-y-auto">
                         <div className="flex min-h-full items-center justify-center p-4 text-center">
                             <Transition.Child
@@ -85,13 +104,13 @@ export default function Register() {
                                                 <img
                                                     className="mx-auto h-12 w-auto"
                                                     src="/assets/logo/l1.svg"
-                                                    alt="Your Company"
+                                                    alt="Company"
                                                 />
                                                 <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-                                                    Register your account
+                                                    Sign in to your account
                                                 </h2>
                                             </div>
-                                            <form className="mt-8 space-y-6" action="#" method="POST">
+                                            <form className="mt-8 space-y-6" method="POST">
                                                 <input type="hidden" name="remember" defaultValue="true" />
                                                 <div className="-space-y-px rounded-md shadow-sm">
                                                     <div>
@@ -109,9 +128,7 @@ export default function Register() {
                                                             onChange={handleEmail}
                                                         />
                                                     </div>
-                                                    <br>
-                                                    </br>
-
+                                                    <br></br>
                                                     <div>
                                                         <label htmlFor="password" className="sr-only">
                                                             Password
@@ -130,26 +147,24 @@ export default function Register() {
                                                 </div>
 
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center">
-                                                        <a href='/Signin'>
-                                                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                                                                Already Registered
-                                                            </label>
+
+
+                                                    <div className="text-sm">
+                                                        <a href="/Signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+                                                           Not Registered
                                                         </a>
                                                     </div>
-
                                                 </div>
 
                                                 <div>
                                                     <button
                                                         type="submit"
-                                                        className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue py-2 px-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                                        onClick={handleSubmit}
-                                                    >
+                                                        className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                                        onClick={handleSubmit} >
                                                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                                                             <LockClosedIcon className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" aria-hidden="true" />
                                                         </span>
-                                                        Register Now
+                                                        Sign in
                                                     </button>
                                                 </div>
                                                 <div ><center><h3  className='text-danger'>{msg}</h3></center> 
@@ -159,7 +174,9 @@ export default function Register() {
                                     </div>
 
 
+                                    <div className="mt-4 flex justify-end">
 
+                                    </div>
                                 </Dialog.Panel>
                             </Transition.Child>
                         </div>
@@ -169,3 +186,4 @@ export default function Register() {
         </>
     )
 }
+

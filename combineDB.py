@@ -6,7 +6,7 @@ import datetime
 client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
 db = client["face"]  # Replace with your database name
 frames_collection = db["Anonymize"]  # Replace with your collection name
-
+video_info_collection = db["video_info"]
 output_folder = "comparison"
 video_id = "03"  # Set the video ID here
 destination="output"
@@ -15,7 +15,7 @@ def combine_frames_from_db(currentuser,video_id):
     frames = []
     start_times = []
     end_times = []
-
+    print("combineDB")
     # Retrieve frame data from MongoDB and store frames, start times, and end times
     for frame_data in frames_collection.find({"video_id": video_id}).sort("frame_number"):
         frame_path = os.path.join(output_folder, f"frame_{frame_data['frame_number']}_blurred.jpg")
@@ -37,7 +37,11 @@ def combine_frames_from_db(currentuser,video_id):
         for frame, start_time, end_time in zip(frames, start_times, end_times):
             # Perform operations based on start and end times if needed
             video_writer.write(frame)
+        update_query = {"video_id": video_id}    
+        new_values = {"$set": {"output_path": video_filename}}
 
+        # Update the "blur" field in MongoDB for the current frame
+        video_info_collection.update_one(update_query, new_values)
         video_writer.release()
         print("Frames combined into 'combined_video.mp4'.")
         return video_filename

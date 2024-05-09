@@ -1,4 +1,5 @@
 from imports import *
+
 # Connect to MongoDB (replace with your connection details)
 client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
 db = client["face"]  # Replace with your database name
@@ -71,23 +72,23 @@ def upload_file():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
         file.save(file_path)
 
-    blur_factor = int(request.form.get('blur_factor', 3))  # Default blur factor is 3
-    blur_all_faces = request.form.get('blur_all_faces', 'true').lower() == 'true'
-    face_blurrer = FaceBlurApp()
-    output_filename = 'blurred_' +current_user+timestamp+ file.filename
-    print(output_filename)
-    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-    faces=face_blurrer.run(file_path, output_path, blur_factor)
-    print(faces)
-    image_data={
-    'userId': 1,
-    'image_path': file_path,
-    'output_path': output_path,
-    'blur_factor': blur_factor,
-    'faces': [{'coordinates': [int(x) for x in face['coordinates']]} for face in faces]  # Convert coordinates to integers
-    }
-    frames_collection.insert_one(image_data)
-    return jsonify({'message': 'File processed successfully', 'output_path': output_path}), 200
+        blur_factor = int(request.form.get('blur_factor', 3))  # Default blur factor is 3
+        blur_all_faces = request.form.get('blur_all_faces', 'true').lower() == 'true'
+        face_blurrer = FaceBlurApp()
+        output_filename = 'blurred_' +user_identity+timestamp+ file.filename
+        print(output_filename)
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        faces=face_blurrer.run(file_path, output_path, blur_factor)
+        print(faces)
+        image_data={
+        'userId': 1,
+        'image_path': file_path,
+        'output_path': output_path,
+        'blur_factor': blur_factor,
+        'faces': [{'coordinates': [int(x) for x in face['coordinates']]} for face in faces]  # Convert coordinates to integers
+        }
+        frames_collection.insert_one(image_data)
+        return jsonify({'message': 'File processed successfully', 'output_path': output_path}), 200
 
 
 @app.route('/api/face', methods=['POST'])
@@ -97,38 +98,38 @@ def uploads_file():
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
 
-    file = request.files['file']
-    f1=request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user+timestamp+file.filename)
-    
-    file.save(file_path)
-    print("f1",f1.filename)
-    static_path=os.path.join(app.config['STATIC_FOLDER'],current_user+timestamp+f1.filename)
-    shutil.copy(file_path,static_path)
-    face_detector = FaceDetector()
-    detected_faces = face_detector.detect_faces(file_path)
-    print('face_detector detected',detected_faces)
-    # Convert int32 values to Python integers for JSON serialization
-    for face_list in detected_faces:
-            face_list['coordinates'] = [int(coord) for coord in face_list['coordinates']]
-
-    response_data = {
+        file = request.files['file']
+        f1=request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], user_identity+timestamp+file.filename)
         
-        'detected_faces': detected_faces,
-        'image_path': file_path
-    }   
-    selective_image={
-        'userId':1,
-        'image_path':file_path,
-        'faces':detected_faces,
-        'static_path':static_path}
-    
-    selective_collection.insert_one(selective_image)
-    return jsonify(response_data), 200
+        file.save(file_path)
+        print("f1",f1.filename)
+        static_path=os.path.join(app.config['STATIC_FOLDER'],user_identity+timestamp+f1.filename)
+        shutil.copy(file_path,static_path)
+        face_detector = FaceDetector()
+        detected_faces = face_detector.detect_faces(file_path)
+        print('face_detector detected',detected_faces)
+        # Convert int32 values to Python integers for JSON serialization
+        for face_list in detected_faces:
+                face_list['coordinates'] = [int(coord) for coord in face_list['coordinates']]
+
+        response_data = {
+            
+            'detected_faces': detected_faces,
+            'image_path': file_path
+        }   
+        selective_image={
+            'userId':1,
+            'image_path':file_path,
+            'faces':detected_faces,
+            'static_path':static_path}
+        
+        selective_collection.insert_one(selective_image)
+        return jsonify(response_data), 200
 
 @app.route('/api/selected-faces', methods=['POST'])
 def select():
@@ -157,7 +158,7 @@ def select():
 
             # Adjust sigma based on blur factor (modify as needed)
             kernel_size = 5  # Adjust kernel size as needed (should be odd)
-            sigma = blur_factor * math.log(blur_factor + 1, 2)  # Scale blur factor (adjust multiplier if needed)
+            sigma = 30 * math.log(blur_factor + 5, 2)  # Scale blur factor (adjust multiplier if needed)
             blurred_face = cv2.GaussianBlur(face_roi, (kernel_size, kernel_size), sigma, sigma)
 
             blurred_image[face['coordinates'][1]:face['coordinates'][3],
@@ -226,26 +227,36 @@ def reference():
         compareDB.save_frames_to_db(video_path, video_id, file_path)
         blurDB.blur_and_save_frames(video_path,video_id)
         output_file=combineDB.combine_frames_from_db(user_identity,video_id)
-        combined_video=audioDB.combine_audio(video_id)
-        print(combined_video)
-        return jsonify({'success': 'Video has been compared.','output': combined_video})
+        # combined_video=audioDB.combine_audio(video_id,output_file)
+      
+        return jsonify({'success': 'Video has been compared.','output': output_file})
    
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    email=request.form.get('email')
-    password=request.form.get('password')
-    check=user_collection.find_one({'email':email})
+    email = request.form.get('email')
+    check = user_collection.find_one({'email': email})
     if check:
         return jsonify({'msg': 'Username already registered', 'status_code': 500})
     else:
-        hashed=connection.register(password)
-        frames_data={
-            'email': email,
-            'password': hashed
-        }
-        print("frames",frames_data)
-        con=user_collection.insert_one(frames_data)
+        old = otp_collection.find_one({'email': email})
+        otp = 102506 #sendemail.verify(email)
+        print(otp)
+        current_timestamp = datetime.datetime.now().timestamp()
+        if old:
+            con = otp_collection.update_one({'email': email}, {'$set': {'otp': otp, 'timestamp': current_timestamp}})
+            if con:
+                return jsonify({'msg': 'OTP send successfully', 'email': email, 'otp': otp, 'status_code': 201}), 201
+            else:
+                return jsonify({'msg': 'Registration Failure', 'status_code': 500}), 500
+        else:
+            frames_data = {
+                'email': email,
+                'otp': otp,
+                'timestamp': current_timestamp
+            }
+
+        con = otp_collection.insert_one(frames_data)
         if con:
             return jsonify({'msg': 'OTP send successfully', 'email': email, 'otp': otp, 'status_code': 201}), 201
         else:
@@ -291,7 +302,6 @@ def curr():
 
 @app.route('/api/login',methods=['POST'])
 def reg():
-    print(app.config['JWT_SECRET_KEY'])
     email=request.form.get('email')
     passd=request.form.get('passw')
     print(email,passd)
@@ -302,6 +312,8 @@ def reg():
     if bcrypt.checkpw(pa,hashed):
         #access token creation
         access_token=create_access_token(identity=email)
+        print(app.config['JWT_SECRET_KEY'])
+        
         return jsonify({'msg':'Login successful','token':access_token})
     else:
         return jsonify({'msg':'Invalid password'})
@@ -311,7 +323,7 @@ def reg():
 @jwt_required()  # Ensure JWT token is present and valid
 def protected():
     current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200    
+    return jsonify(current_user), 200    
 
 
     

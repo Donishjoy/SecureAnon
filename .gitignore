@@ -33,3 +33,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# App
+/frames
+/comparison
+/output
+/uploads
+/static
+
+.next
+__pycache__

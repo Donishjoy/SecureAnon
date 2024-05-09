@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 from flask import Flask, request, jsonify, send_from_directory,json
-from flask import Flask, request, jsonify, send_from_directory,json
 from flask_cors import CORS
 import os
 from pymongo import MongoClient
@@ -14,6 +13,7 @@ import blurDB
 import combineDB
 import framesGPU
 import connection
+import audioDB
 from bson.json_util import dumps,loads 
 import bcrypt
 from flask_jwt_extended import JWTManager,create_access_token,create_refresh_token,get_jwt_identity,jwt_required
@@ -24,3 +24,8 @@ from faceblurapp import FaceBlurApp
 from facedetecterapp import FaceDetector
 import easyocr
 from datetime import timedelta
+from flask import session
+from flask_login import LoginManager, UserMixin, login_user, current_user
+from moviepy.editor import *
+from flask_mail import Mail
+

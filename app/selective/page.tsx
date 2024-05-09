@@ -1,6 +1,8 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { Select, SelectItem } from '@nextui-org/react';
+import { ToastContainer,toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
+import 'react-toastify/dist/ReactToastify.css';
 // Define your component
 export default function FileUpload() {
 
@@ -17,14 +19,28 @@ export default function FileUpload() {
     // Function to handle file upload
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
-            setSelectedFile(event.target.files[0]);
+          const selectedImage = event.target.files[0];
+          if (selectedImage.type.startsWith('image/')) {
+            setSelectedFile(selectedImage);
+          } else {
+            toast.error('⚠️ Please select an image file', {
+              position: 'top-right',
+              autoClose: 5000,
+              hideProgressBar: true,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+              theme: 'colored',
+            });
+          }
         }
-    };
+      };
 
     const handleBlurFactorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setBlurFactor(parseInt(event.target.value));
     };
-
+    const router=useRouter();
     // Function to handle form submission
     const handleSubmit = async () => {
         if (!selectedFile) {
@@ -32,6 +48,10 @@ export default function FileUpload() {
             return;
         }
 
+        const token=localStorage.getItem('token');
+        if(!token){
+            router.push('/Signin');
+        }
         const formData = new FormData();
         formData.append('file', selectedFile);
 
@@ -39,6 +59,9 @@ export default function FileUpload() {
             const response = await fetch('http://127.0.0.1:5000/api/face', {
                 method: 'POST',
                 body: formData,
+                headers:{
+                    'Authorization':`Bearer ${token}`
+                }
             });
 
             if (response.ok) {
@@ -89,12 +112,16 @@ export default function FileUpload() {
         // Send selected faces to the server
         console.log('selected faces', selectedFaces);
         console.log('selected file', selectedFile);
-
+        const token=localStorage.getItem('token');
+        if(!token){
+            router.push('/Signin');
+        }
         try {
             const response = await fetch('http://127.0.0.1:5000/api/selected-faces', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                        'Authorization':`Bearer ${token}`
                 },
                 body: JSON.stringify({ selectedFaces, blurFactor, imagePath, selectedFile }), // Send selected faces as JSON
             });
@@ -113,6 +140,32 @@ export default function FileUpload() {
         }
     };
 
+
+    const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+    };
+
+    const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        if (event.dataTransfer.files) {
+            const selectedImage = event.dataTransfer.files[0];
+            if (selectedImage.type.startsWith('image/')) {
+                setSelectedFile(selectedImage);
+            } else {
+                toast.error('⚠️ Please select an image file', {
+                    position: 'top-right',
+                    autoClose: 5000,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: 'colored',
+                });
+            }
+        }
+    };
+
     useEffect(() => {
         // Add any initial logic here
     }, []);
@@ -120,10 +173,24 @@ export default function FileUpload() {
     return (
         <div style={{ backgroundColor: 'white', padding: '20px', maxWidth: '60%', margin: 'auto', alignContent: 'center', overflowY: 'auto', scrollBehavior: 'smooth', marginBottom: '10%' }}>
             <br />
+            <ToastContainer
+position="top-right"
+autoClose={5000}
+hideProgressBar={false}
+newestOnTop={false}
+closeOnClick
+rtl={false}
+pauseOnFocusLoss
+draggable
+pauseOnHover
+theme="light"
+/>
+{/* Same as */}
+<ToastContainer />
             <div className="col-span-full">
                 <label htmlFor="file-upload">Upload Image</label>
                 <br />
-                <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+                <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10" onDragOver={handleDragOver} onDrop={handleDrop}>
                     <div className="text-center">
                         <svg className="mx-auto h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" />
@@ -155,7 +222,7 @@ export default function FileUpload() {
                     <h2>Detected Faces</h2>
                     <br/>
                     <img src={'http://127.0.0.1:5000/' + imagePath} alt="Detected Faces" style={{ width: '100%', marginBottom: '10px' }} />
-                    <div className="bg-danger hover:bg-blue-700 text-black font-bold py-2 px-4 rounded mt-2">
+                    <div className=" hover:bg-blue-700 text-black font-bold py-2 px-4 rounded mt-2">
                         <select multiple value={selectedFaces.map(String)} onChange={(e) => setSelectedFaces(Array.from(e.target.selectedOptions, (option) => parseInt(option.value)))} style={{width:"60%",marginTop:"10%"}}>
                         <option key="" value="">Select Face </option>
                             {detectedFaces.map((face, index) => (

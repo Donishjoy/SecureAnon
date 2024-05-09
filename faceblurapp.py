@@ -11,7 +11,7 @@ class ModelParams():
 class FaceBlurApp:
     __face_detector = None
     __model_params = None
-    __max_blur_factor = 5
+    __max_blur_factor = 8
     __min_blur_factor = 1
 
     def __init__(self):
@@ -39,7 +39,7 @@ class FaceBlurApp:
         for i in range(detections.shape[2]):
             confidence = detections[0, 0, i, 2]
 
-            if confidence >= 0.5:  # Adjust the confidence threshold as needed
+            if confidence >= 0.3:  # Adjust the confidence threshold as needed
                 box = detections[0, 0, i, 3:7] * np.array([width, height, width, height])
                 (x1, y1, x2, y2) = box.astype("int")
                 detected_faces.append({'index':i, 'coordinates': [x1, y1, x2, y2]}) 
@@ -59,7 +59,7 @@ class FaceBlurApp:
         for face in faces:  # Iterate directly over the faces list
             (x1, y1, x2, y2) = face['coordinates']  # Access coordinates using correct key
             face_roi = image[y1:y2, x1:x2]
-            blurred_face = self.__blurFace(face_roi, blur_factor)
+            blurred_face = self.__blurFace(face_roi, blur_factor+3)
             blurred_image[y1:y2, x1:x2, :] = blurred_face
             
             # Text location blurring

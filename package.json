@@ -19,7 +19,6 @@
     "axios": "^1.6.8",
     "bcrypt": "^5.1.1",
     "eslint": "8.40.0",
-    "eslint-config-next": "13.4.2",
     "face-api.js": "^0.22.2",
     "framer-motion": "^11.0.15",
     "js-cookie": "^3.0.5",
@@ -42,6 +41,11 @@
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/js-cookie": "^3.0.6",
-    "@types/react-slick": "^0.23.10"
-  }
+    "@types/react-slick": "^0.23.10",
+    "eslint-config-next": "^14.2.3"
+  },
+  "description": "SecureAnon is a pioneering initiative aimed at tackling the escalating concerns surrounding personal privacy in today's digital era. Harnessing state-of-the-art machine learning and computer vision technologies, the project is dedicated to identifying and anonymizing identifiable features such as faces, watermarks, and sensitive objects in both videos and images.",
+  "main": "next.config.js",
+  "author": "",
+  "license": "ISC"
 }

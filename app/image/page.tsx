@@ -39,6 +39,7 @@ export default function FileUpload() {
         }
         console.log(selectedFile);
         const token=localStorage.getItem('token');
+        console.log('token: image ',token);
         if (!token){
             router.push('/Signin')
         }

@@ -147,6 +147,7 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
                 console.log('success',data.output);
 
                 setUploadedVideoUrl(data.output);
+                setLoading(false);
             } else {
                 console.error('Failed to process file');
             }

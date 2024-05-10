@@ -15,7 +15,7 @@ def combine_frames_from_db(currentuser,video_id):
     frames = []
     start_times = []
     end_times = []
-
+    print("combineDB")
     # Retrieve frame data from MongoDB and store frames, start times, and end times
     for frame_data in frames_collection.find({"video_id": video_id}).sort("frame_number"):
         frame_path = os.path.join(output_folder, f"frame_{frame_data['frame_number']}_blurred.jpg")

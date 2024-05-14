@@ -260,8 +260,9 @@ theme="light"
             {selectedFile && selectedImage && (<button type="button" className="bg-success hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" onClick={handleprocess} style={{marginLeft:"80%"}}>Process Video</button>)}
 
             {VideoUrl && (
-                <div>
-                    <video src="https://www.youtube.com/watch?v=GXcy7Di1oys&list=PLUE9cBml08yi4OVpg4tR7yGBGgJjyfi3y"  style={{ marginTop: '10px', width: '50%', height: '30%' }} />
+                <div><br></br><br></br>
+                    <iframe width="560" height="315" src={`http://127.0.0.1:5000/${VideoUrl}`} title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ></iframe>
+
 
                     <br />
                     <button type="button" className="bg-warning hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" onClick={handleDownload}>Download Processed Video</button>

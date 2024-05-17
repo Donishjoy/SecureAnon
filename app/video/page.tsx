@@ -133,6 +133,7 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
             router.push('/Signin');
         }
         setLoading(true);
+        setBackground(true);
         try {
             const response = await fetch('http://127.0.0.1:5000/api/reference', {
                 method: 'POST',
@@ -148,6 +149,7 @@ const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
 
                 setUploadedVideoUrl(data.output);
                 setLoading(false);
+                setBackground(false);
             } else {
                 console.error('Failed to process file');
             }
